@@ -8,9 +8,9 @@ local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
-local ShootGun   = Remotes:WaitForChild("ShootGun")
+local ShootGun = Remotes:WaitForChild("ShootGun")
 local ThrowStart = Remotes:WaitForChild("ThrowStart")
-local ThrowHit   = Remotes:WaitForChild("ThrowHit")
+local ThrowHit = Remotes:WaitForChild("ThrowHit")
 
 local Existing = PlayerGui:FindFirstChild("CombatTestUI")
 if Existing then
@@ -27,7 +27,7 @@ local Theme = {
     Red = Color3.fromRGB(255, 75, 75)
 }
 
-local WIDTH  = 170
+local WIDTH = 170
 local HEIGHT = 210
 
 local ScreenGui = Instance.new("ScreenGui")
@@ -41,6 +41,7 @@ Main.Name = "Main"
 Main.Size = UDim2.fromOffset(WIDTH, HEIGHT)
 Main.Position = UDim2.new(0, 20, 0.35, 0)
 Main.BackgroundColor3 = Theme.Background
+Main.BackgroundTransparency = 0.05
 Main.BorderSizePixel = 0
 Main.Parent = ScreenGui
 
@@ -51,6 +52,7 @@ MainCorner.Parent = Main
 local MainStroke = Instance.new("UIStroke")
 MainStroke.Color = Theme.Green
 MainStroke.Thickness = 1.2
+MainStroke.Transparency = 0.1
 MainStroke.Parent = Main
 
 local Header = Instance.new("Frame")
@@ -77,6 +79,8 @@ Title.Position = UDim2.fromOffset(8, 0)
 Title.BackgroundTransparency = 1
 Title.Text = "COMBAT TEST"
 Title.TextColor3 = Theme.White
+Title.TextStrokeColor3 = Theme.Green
+Title.TextStrokeTransparency = 0.55
 Title.Font = Enum.Font.Arcade
 Title.TextSize = 10
 Title.TextXAlignment = Enum.TextXAlignment.Left
@@ -87,8 +91,11 @@ local function CreateHeaderButton(Text, Position, Color)
     Button.Size = UDim2.fromOffset(20, 18)
     Button.Position = Position
     Button.BackgroundColor3 = Theme.Button
+    Button.BorderSizePixel = 0
     Button.Text = Text
     Button.TextColor3 = Color
+    Button.TextStrokeColor3 = Theme.Green
+    Button.TextStrokeTransparency = 0.65
     Button.Font = Enum.Font.Arcade
     Button.TextSize = 10
     Button.AutoButtonColor = true
@@ -101,8 +108,13 @@ local function CreateHeaderButton(Text, Position, Color)
     return Button
 end
 
-local MinimizeButton = CreateHeaderButton("-", UDim2.new(1, -46, 0, 5), Theme.Green)
-local CloseButton    = CreateHeaderButton("X", UDim2.new(1, -24, 0, 5), Theme.Red)
+local MinimizeButton = CreateHeaderButton(
+    "-", UDim2.new(1, -46, 0, 5), Theme.Green
+)
+
+local CloseButton = CreateHeaderButton(
+    "X", UDim2.new(1, -24, 0, 5), Theme.Red
+)
 
 local Status = Instance.new("TextLabel")
 Status.Size = UDim2.new(1, -16, 0, 14)
@@ -157,12 +169,17 @@ local VisualPage = CreatePage("VISUAL")
 
 local function CreateTab(Name)
     local Button = Instance.new("TextButton")
+    Button.Name = Name .. "Tab"
     Button.Size = UDim2.new(0.5, -3, 1, 0)
     Button.BackgroundColor3 = Theme.Button
+    Button.BorderSizePixel = 0
     Button.Text = Name
     Button.TextColor3 = Theme.Gray
+    Button.TextStrokeColor3 = Theme.Green
+    Button.TextStrokeTransparency = 0.7
     Button.Font = Enum.Font.Arcade
     Button.TextSize = 8
+    Button.AutoButtonColor = true
     Button.Parent = Tabs
 
     local Corner = Instance.new("UICorner")
@@ -180,12 +197,20 @@ local function SetPage(Name)
         Page.Visible = PageName == Name
     end
 
-    CombatTab.TextColor3 = Name == "COMBAT" and Theme.Green or Theme.Gray
-    VisualTab.TextColor3 = Name == "VISUAL" and Theme.Green or Theme.Gray
+    CombatTab.TextColor3 =
+        Name == "COMBAT" and Theme.Green or Theme.Gray
+
+    VisualTab.TextColor3 =
+        Name == "VISUAL" and Theme.Green or Theme.Gray
 end
 
-CombatTab.Activated:Connect(function() SetPage("COMBAT") end)
-VisualTab.Activated:Connect(function() SetPage("VISUAL") end)
+CombatTab.Activated:Connect(function()
+    SetPage("COMBAT")
+end)
+
+VisualTab.Activated:Connect(function()
+    SetPage("VISUAL")
+end)
 
 local States = {}
 
@@ -194,8 +219,11 @@ local function CreateActionButton(Parent, Name, Callback)
     Button.Name = Name
     Button.Size = UDim2.new(1, 0, 0, 26)
     Button.BackgroundColor3 = Theme.Button
+    Button.BorderSizePixel = 0
     Button.Text = Name
     Button.TextColor3 = Theme.White
+    Button.TextStrokeColor3 = Theme.Green
+    Button.TextStrokeTransparency = 0.7
     Button.Font = Enum.Font.Arcade
     Button.TextSize = 9
     Button.AutoButtonColor = true
@@ -212,16 +240,18 @@ local function CreateActionButton(Parent, Name, Callback)
     Stroke.Parent = Button
 
     Button.Activated:Connect(function()
-        if Callback then
-            local Success, Err = pcall(Callback)
-            if Success then
-                Status.Text = "STATUS: ACTION SENT"
-                Status.TextColor3 = Theme.Green
-            else
-                Status.Text = "STATUS: ACTION FAILED"
-                Status.TextColor3 = Theme.Red
-                warn("[CombatTestUI] " .. tostring(Err))
-            end
+        if not Callback then
+            return
+        end
+
+        local Success = pcall(Callback)
+
+        if Success then
+            Status.Text = "STATUS: ACTION SENT"
+            Status.TextColor3 = Theme.Green
+        else
+            Status.Text = "STATUS: ACTION FAILED"
+            Status.TextColor3 = Theme.Red
         end
     end)
 
@@ -231,11 +261,16 @@ end
 local function CreateToggle(Parent, Name, Default, Callback)
     States[Name] = Default
 
-    local Button = CreateActionButton(Parent, "", nil)
+    local Button = CreateActionButton(Parent, Name, nil)
 
     local function Refresh()
-        Button.Text = Name .. ": " .. (States[Name] and "ON" or "OFF")
-        Button.TextColor3 = States[Name] and Theme.Green or Theme.White
+        Button.Text = Name .. ": " ..
+            (States[Name] and "ON" or "OFF")
+
+        Button.TextColor3 =
+            States[Name] and Theme.Green or Theme.White
+
+        Button.TextStrokeTransparency = 0.7
     end
 
     Button.Activated:Connect(function()
@@ -243,7 +278,12 @@ local function CreateToggle(Parent, Name, Default, Callback)
         Refresh()
 
         if Callback then
-            Callback(States[Name])
+            local Success = pcall(Callback, States[Name])
+
+            if not Success then
+                Status.Text = "STATUS: ACTION FAILED"
+                Status.TextColor3 = Theme.Red
+            end
         end
     end)
 
@@ -254,7 +294,10 @@ end
 local function GetNearestPlayer()
     local Character = LocalPlayer.Character
     local Root = Character and Character:FindFirstChild("HumanoidRootPart")
-    if not Root then return nil end
+
+    if not Root then
+        return nil
+    end
 
     local Nearest
     local ShortestDistance = math.huge
@@ -262,13 +305,17 @@ local function GetNearestPlayer()
     for _, Player in ipairs(Players:GetPlayers()) do
         if Player ~= LocalPlayer then
             local TargetCharacter = Player.Character
+
             local TargetRoot = TargetCharacter
                 and TargetCharacter:FindFirstChild("HumanoidRootPart")
+
             local Humanoid = TargetCharacter
                 and TargetCharacter:FindFirstChildOfClass("Humanoid")
 
             if TargetRoot and Humanoid and Humanoid.Health > 0 then
-                local Distance = (Root.Position - TargetRoot.Position).Magnitude
+                local Distance =
+                    (Root.Position - TargetRoot.Position).Magnitude
+
                 if Distance < ShortestDistance then
                     ShortestDistance = Distance
                     Nearest = Player
@@ -281,37 +328,57 @@ local function GetNearestPlayer()
 end
 
 local function GetTargetPart(Target)
-    if not Target then return nil, nil end
+    if not Target then
+        return nil, nil
+    end
+
     local Character = Target.Character
-    if not Character then return nil, nil end
+
+    if not Character then
+        return nil, nil
+    end
 
     local Humanoid = Character:FindFirstChildOfClass("Humanoid")
     local Root = Character:FindFirstChild("HumanoidRootPart")
+
     if not Humanoid or not Root or Humanoid.Health <= 0 then
         return nil, nil
     end
 
     local Head = Character:FindFirstChild("Head")
+
     if Head then
         local HeadPart = Head:FindFirstChild("Part")
-        if HeadPart then return HeadPart, Root end
+
+        if HeadPart then
+            return HeadPart, Root
+        end
+
         return Head, Root
     end
+
     return Root, Root
 end
 
 local function GetMuzzlePosition()
     local Character = LocalPlayer.Character
-    if not Character then return nil end
+
+    if not Character then
+        return nil
+    end
 
     local Tool = Character:FindFirstChildOfClass("Tool")
+
     if Tool then
         local Handle = Tool:FindFirstChild("Handle")
+
         if Handle then
             local Muzzle = Handle:FindFirstChild("Muzzle")
+
             if Muzzle and Muzzle:IsA("Attachment") then
                 return Muzzle.WorldPosition
             end
+
             return Handle.Position
         end
     end
@@ -323,19 +390,22 @@ end
 local function TestGun()
     local Target = GetNearestPlayer()
     local TargetPart = GetTargetPart(Target)
+
     if not TargetPart then
-        error("Nenhum alvo válido")
+        error("No valid target")
     end
 
     local HitPos = TargetPart.Position
 
     local OriginPos
+
     if States["WALLBANG"] then
         OriginPos = HitPos + Vector3.new(0, 0.25, 0)
     else
         OriginPos = GetMuzzlePosition()
+
         if not OriginPos then
-            error("Muzzle não encontrado")
+            error("Muzzle not found")
         end
     end
 
@@ -345,19 +415,22 @@ end
 local function TestKnife()
     local Target = GetNearestPlayer()
     local TargetPart = GetTargetPart(Target)
+
     if not TargetPart then
-        error("Nenhum alvo válido")
+        error("No valid target")
     end
 
     local HitPos = TargetPart.Position
 
     local OriginPos
+
     if States["WALLBANG"] then
         OriginPos = HitPos + Vector3.new(0, 0.25, 0)
     else
         OriginPos = GetMuzzlePosition()
+
         if not OriginPos then
-            error("Muzzle não encontrado")
+            error("Muzzle not found")
         end
     end
 
@@ -366,7 +439,9 @@ local function TestKnife()
     ThrowStart:FireServer(OriginPos, Direction)
 
     local Delay = States["WALLBANG"] and 0.05 or 0.15
+
     task.wait(Delay)
+
     ThrowHit:FireServer(TargetPart, HitPos)
 end
 
@@ -374,9 +449,15 @@ local HighlightsEnabled = false
 local Highlights = {}
 
 local function UpdateHighlight(Player)
-    if Player == LocalPlayer then return end
+    if Player == LocalPlayer then
+        return
+    end
+
     local Character = Player.Character
-    if not Character then return end
+
+    if not Character then
+        return
+    end
 
     if Highlights[Player] then
         Highlights[Player]:Destroy()
@@ -388,16 +469,19 @@ local function UpdateHighlight(Player)
         Highlight.Name = "PlayerESP"
         Highlight.FillColor = Theme.Green
         Highlight.OutlineColor = Theme.White
-        Highlight.FillTransparency = 0.65
+        Highlight.FillTransparency = 0.75
+        Highlight.OutlineTransparency = 0.35
         Highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
         Highlight.Adornee = Character
         Highlight.Parent = ScreenGui
+
         Highlights[Player] = Highlight
     end
 end
 
 local function SetESP(Enabled)
     HighlightsEnabled = Enabled
+
     for _, Player in ipairs(Players:GetPlayers()) do
         UpdateHighlight(Player)
     end
@@ -405,16 +489,19 @@ end
 
 local function TeleportBehindNearest()
     local Target = GetNearestPlayer()
+
     if not Target or not Target.Character then
-        error("Nenhum alvo válido")
+        error("No valid target")
     end
 
     local Character = LocalPlayer.Character
     local Root = Character and Character:FindFirstChild("HumanoidRootPart")
-    local TargetRoot = Target.Character:FindFirstChild("HumanoidRootPart")
+
+    local TargetRoot =
+        Target.Character:FindFirstChild("HumanoidRootPart")
 
     if not Root or not TargetRoot then
-        error("HumanoidRootPart ausente")
+        error("HumanoidRootPart missing")
     end
 
     Root.CFrame = TargetRoot.CFrame * CFrame.new(0, 0, 3)
@@ -424,22 +511,42 @@ CreateActionButton(CombatPage, "GUN TEST", TestGun)
 CreateActionButton(CombatPage, "KNIFE TEST", TestKnife)
 
 CreateToggle(CombatPage, "WALLBANG", false, function(Enabled)
-    Status.Text = Enabled and "STATUS: WALLBANG ON" or "STATUS: WALLBANG OFF"
+    Status.Text = Enabled and "STATUS: WALLBANG ON"
+        or "STATUS: WALLBANG OFF"
+
+    Status.TextColor3 = Theme.Green
 end)
 
 CreateToggle(VisualPage, "PLAYER ESP", false, function(Enabled)
     SetESP(Enabled)
-    Status.Text = Enabled and "STATUS: ESP ON" or "STATUS: ESP OFF"
+
+    Status.Text = Enabled and "STATUS: ESP ON"
+        or "STATUS: ESP OFF"
+
+    Status.TextColor3 = Theme.Green
 end)
 
-CreateActionButton(VisualPage, "TELEPORT TEST", TeleportBehindNearest)
+CreateActionButton(
+    VisualPage,
+    "TELEPORT TEST",
+    TeleportBehindNearest
+)
 
-Players.PlayerAdded:Connect(function(Player)
+local function ConnectPlayer(Player)
     Player.CharacterAdded:Connect(function()
         task.wait(0.5)
-        UpdateHighlight(Player)
+
+        if ScreenGui.Parent then
+            UpdateHighlight(Player)
+        end
     end)
-end)
+
+    if Player.Character then
+        UpdateHighlight(Player)
+    end
+end
+
+Players.PlayerAdded:Connect(ConnectPlayer)
 
 Players.PlayerRemoving:Connect(function(Player)
     if Highlights[Player] then
@@ -449,21 +556,22 @@ Players.PlayerRemoving:Connect(function(Player)
 end)
 
 for _, Player in ipairs(Players:GetPlayers()) do
-    Player.CharacterAdded:Connect(function()
-        task.wait(0.5)
-        UpdateHighlight(Player)
-    end)
+    ConnectPlayer(Player)
 end
 
 local Minimized = false
 
 MinimizeButton.Activated:Connect(function()
     Minimized = not Minimized
+
     Content.Visible = not Minimized
     Tabs.Visible = not Minimized
     Status.Visible = not Minimized
-    Main.Size = Minimized and UDim2.fromOffset(WIDTH, 28)
+
+    Main.Size = Minimized
+        and UDim2.fromOffset(WIDTH, 28)
         or UDim2.fromOffset(WIDTH, HEIGHT)
+
     MinimizeButton.Text = Minimized and "+" or "-"
 end)
 
@@ -476,6 +584,7 @@ CloseButton.Activated:Connect(function()
     end
 
     ConfirmingClose = true
+
     CloseButton.Text = "?"
     Title.Text = "CLOSE UI?"
 
@@ -496,6 +605,7 @@ local DragInput
 Header.InputBegan:Connect(function(Input)
     if Input.UserInputType == Enum.UserInputType.MouseButton1
         or Input.UserInputType == Enum.UserInputType.Touch then
+
         Dragging = true
         DragStart = Input.Position
         StartPosition = Main.Position
@@ -511,6 +621,7 @@ end)
 Header.InputChanged:Connect(function(Input)
     if Input.UserInputType == Enum.UserInputType.MouseMovement
         or Input.UserInputType == Enum.UserInputType.Touch then
+
         DragInput = Input
     end
 end)
