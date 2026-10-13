@@ -1,6 +1,4 @@
-if game.GameId ~= 12355337193 then
-    return
-end
+if game.PlaceId ~= 12355337193 then return end
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
